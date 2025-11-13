@@ -1,0 +1,1 @@
+I want to build a modern quickstart for setting up a basic Snowflake agent in Microsoft teams using the latest documentation and feature set.
