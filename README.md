@@ -19,12 +19,12 @@ A modern, enterprise-ready integration that brings Snowflake's conversational AI
 
 **First time here? Follow these steps in order:**
 
-1. **Prerequisites** (5 min) → `docs/01-PREREQUISITES.md`
+1. **Prerequisites** (5 min) → docs/01-PREREQUISITES.md
    - Verify Snowflake ACCOUNTADMIN access
    - Verify Microsoft Entra ID Global Admin access
    - Check Cortex AI is available
 
-2. **Entra ID Setup** (3 min) → `docs/02-ENTRA-ID-SETUP.md`
+2. **Entra ID Setup** (3 min) → docs/02-ENTRA-ID-SETUP.md
    - Azure admin grants tenant consent (one-time)
    - Save your Tenant ID
 
@@ -37,11 +37,11 @@ A modern, enterprise-ready integration that brings Snowflake's conversational AI
    sql/01_setup/05_grant_permissions.sql
    ```
 
-4. **Create Agent** (5 min) → `docs/04-CREATE-AGENT.md`
+4. **Create Agent** (5 min) → docs/04-CREATE-AGENT.md
    - Use Snowsight UI to create Cortex Agent
    - Or follow SQL instructions for automation
 
-5. **Install Teams App** (2 min) → `docs/05-INSTALL-TEAMS-APP.md`
+5. **Install Teams App** (2 min) → docs/05-INSTALL-TEAMS-APP.md
    - Install from Microsoft AppSource
    - Connect Snowflake account
    - Select Joke Assistant agent
@@ -51,7 +51,7 @@ A modern, enterprise-ready integration that brings Snowflake's conversational AI
    Tell me a joke about data engineers
    ```
 
-7. **Production Handoff (variable)** → `docs/08-TEAMS-INTEGRATION.md`
+7. **Production Handoff (variable)** → docs/08-TEAMS-INTEGRATION.md
    - Map an existing semantic view (for example, `VW_CORTEX_ANALYST_SALES_CALL_ACTIVITY`)
    - Register a Cortex Analyst-powered agent for Microsoft Teams
    - Follow the customer validation checklist and record tenant-side testing
@@ -156,7 +156,7 @@ User: "Any data quality issues today?"
 Agent: " Critical: customer_data table missing 15% of records..."
 ```
 
-**See `docs/07-CUSTOMIZATION.md` for production implementation patterns.**
+**See docs/07-CUSTOMIZATION.md for production implementation patterns.**
 
 ---
 
@@ -263,23 +263,22 @@ sql/99_cleanup/teardown_all.sql
 
 ### For Administrators
 
-- `docs/01-PREREQUISITES.md` - Requirements and access verification
-- `docs/02-ENTRA-ID-SETUP.md` - Azure tenant consent (Global Admin)
-- `docs/03-SNOWFLAKE-SECURITY-INTEGRATION.md` - OAuth configuration
-- `docs/04-CREATE-AGENT.md` - Cortex Agent setup
-- `config/entra_id_setup_guide.md` - Detailed Azure setup
+- docs/01-PREREQUISITES.md - Requirements and access verification
+- docs/02-ENTRA-ID-SETUP.md - Azure tenant consent (Global Admin)
+- docs/03-SNOWFLAKE-SECURITY-INTEGRATION.md - OAuth configuration
+- docs/04-CREATE-AGENT.md - Cortex Agent setup
 
 ### For End Users
 
-- `docs/05-INSTALL-TEAMS-APP.md` - Install and connect in Teams
-- `docs/06-TESTING.md` - Test scenarios and fun examples
-- `QUICKSTART.md` - Illustrated walkthrough
+- docs/05-INSTALL-TEAMS-APP.md - Install and connect in Teams
+- docs/06-TESTING.md - Test scenarios and fun examples
+- QUICKSTART.md - Illustrated walkthrough
 
 ### For Developers
 
-- `docs/07-CUSTOMIZATION.md` - Production use case patterns
-- `sql/` - All setup and teardown scripts
-- `config/` - Templates and guides
+- docs/07-CUSTOMIZATION.md - Production use case patterns
+- sql/ - All setup and teardown scripts
+- config/ - Templates and guides
 
 ---
 
@@ -289,7 +288,7 @@ sql/99_cleanup/teardown_all.sql
 
 **"Need admin approval"**
 - Entra ID tenant consent not granted
-- See `docs/02-ENTRA-ID-SETUP.md`
+- See docs/02-ENTRA-ID-SETUP.md
 
 **"No agents available"**
 - Agent not created or permissions not granted
@@ -301,7 +300,7 @@ sql/99_cleanup/teardown_all.sql
 
 **User mapping fails**
 - Snowflake LOGIN_NAME must match Entra ID UPN
-- See `docs/03-SNOWFLAKE-SECURITY-INTEGRATION.md`
+- See docs/03-SNOWFLAKE-SECURITY-INTEGRATION.md
 
 **For detailed troubleshooting, see documentation for each component.**
 
@@ -358,7 +357,7 @@ This is a demo project showcasing Snowflake's official Cortex Agents Teams integ
 
 **To extend:**
 1. Fork this repository
-2. Modify for your use case (see `docs/07-CUSTOMIZATION.md`)
+2. Modify for your use case — see docs/07-CUSTOMIZATION.md
 3. Share your agent patterns with the community
 
 ---
