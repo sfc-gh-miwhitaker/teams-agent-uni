@@ -1,43 +1,44 @@
 # Network Flow - Snowflake Cortex Agents for Microsoft Teams
-Author: Michael Whitaker 
-Last Updated: 2025-11-13 
+Author: Michael Whitaker
+Last Updated: 2025-11-14
 Status: Reference Impl
 ![Snowflake](https://img.shields.io/badge/Snowflake-29B5E8?style=for-the-badge&logo=snowflake&logoColor=white)
 Reference Impl: This code demonstrates prod-grade architectural patterns and best practice. review and customize security, networking, logic for your organization's specific requirements before deployment.
 ## Overview
-Network-flow shows how Teams, Azure, and Snowflake components connect over HTTPS, emphasizes the shared SFE_ENTRA_ID_CORTEX_AGENTS_INTEGRATION boundary, and highlights the dedicated warehouse used by the agent.
+This network diagram traces the HTTPS paths between Microsoft Teams, Microsoft Entra ID, and the Snowflake account that hosts the SALES_CALLS_ANALYST agent. It highlights the external OAuth boundary, Lists open ports (443), and shows how traffic stays inside Snowflake once the agent executes Cortex Analyst queries.
 ## Diagram
 ```mermaid
 graph TB
-    subgraph External Systems
+    subgraph External Perimeter
         Teams[Microsoft Teams<br/>AppSource client]
-        Entra[Microsoft Entra ID<br/>Tenant & OAuth]
+        CorpFirewall[Corporate Firewall / Secure Web Gateway<br/>443/HTTPS]
+        Entra[Microsoft Entra ID<br/>Tenant OAuth endpoint]
     end
-    subgraph Network Layer
-        Firewall[Corporate Firewall<br/>443/HTTPS]
-        AzureLB[Azure Front Door / LB<br/>443/HTTPS]
-    end
-    subgraph Snowflake Account
-        API[SFE_ENTRA_ID_CORTEX_AGENTS_INTEGRATION<br/>External OAuth]
-        Account[SNOWFLAKE_EXAMPLE<br/>Account endpoint]
-        Agent[JOKE_ASSISTANT Cortex Agent]
+    subgraph Snowflake Cloud
+        Edge[Snowflake Account Endpoint<br/>443/HTTPS]
+        OAuth[SFE_ENTRA_ID_CORTEX_AGENTS_INTEGRATION<br/>External OAuth listener]
+        Agent[SALES_CALLS_ANALYST<br/>Cortex Agent]
         Warehouse[SFE_CORTEX_AGENTS_WH<br/>Warehouse]
+        SemanticView[VW_CORTEX_ANALYST_SALES_CALL_ACTIVITY<br/>Semantic view]
     end
 
-    Teams -->|HTTPS 443| Firewall
-    Firewall -->|HTTPS 443| AzureLB
-    AzureLB -->|OAuth handshake| Entra
-    Entra -->|HTTPS 443| API
-    API -->|Snowflake Session| Account
-    Account --> Agent
+    Teams -->|Outbound HTTPS 443| CorpFirewall
+    CorpFirewall -->|Allow| Entra
+    CorpFirewall -->|Allow| Edge
+    Entra -->|JWT| OAuth
+    Edge --> OAuth
+    OAuth --> Agent
     Agent --> Warehouse
+    Warehouse --> SemanticView
+    Agent -->|Response via HTTPS| Teams
 ```
 ## Component Descriptions
-- Microsoft Teams App: Runs inside Teams and opens HTTPS tunnels for OAuth and agent conversations (docs/05-INSTALL-TEAMS-APP.md).
-- Microsoft Entra ID: The identity provider that handles OAuth flows, consent, and token issuance (docs/02-ENTRA-ID-SETUP.md).
-- Corporate Firewall & Azure Front Door: Represent the perimeter that must allow outbound HTTPS 443 to Entra ID and Snowflake; ensure network policies do not block the OAuth handshake.
-- SFE_ENTRA_ID_CORTEX_AGENTS_INTEGRATION: Account-level API integration that owns the OAuth listener, maps claims, and enforces allowed roles (sql/01_setup/04_create_security_integration.sql).
-- SNOWFLAKE_EXAMPLE Account Endpoint: The Snowflake account endpoint where the Cortex agent and SQL function execute (sql/01_setup/01_create_demo_objects.sql).
-- JOKE_ASSISTANT Cortex Agent + Warehouse: Agent runs inside the Snowflake account and executes in the `SFE_CORTEX_AGENTS_WH` warehouse so that Cortex COMPLETE and Cortex Guard stay within the secure compute layer (sql/01_setup/03_create_cortex_agent.sql, sql/01_setup/01_create_demo_objects.sql).
+- Microsoft Teams App: Initiates HTTPS calls to Entra ID and Snowflake; traffic must be allowed through any corporate firewall or secure web gateway (docs/05-INSTALL-TEAMS-APP.md).
+- Microsoft Entra ID: Handles OAuth consent and returns JWTs over HTTPS; accounts using network policies or Private Link must disable them for this integration (docs/02-ENTRA-ID-SETUP.md, docs/08-TEAMS-INTEGRATION.md).
+- SFE_ENTRA_ID_CORTEX_AGENTS_INTEGRATION: Snowflake external OAuth integration that receives Entra ID tokens and starts the Snowflake session with mapped roles (sql/01_setup/04_create_security_integration.sql).
+- Snowflake Account Endpoint: Public endpoint (port 443) where all agent traffic lands before it is routed internally (sql/01_setup/01_create_demo_objects.sql).
+- SALES_CALLS_ANALYST Cortex Agent: Executes in Snowflake, orchestrates the Cortex Analyst tool, and keeps data resident within Snowflake’s governance boundary (sql/01_setup/03_create_cortex_agent.sql).
+- SFE_CORTEX_AGENTS_WH Warehouse: Dedicated warehouse that runs the Cortex Analyst queries against the semantic view (sql/01_setup/01_create_demo_objects.sql).
+- VW_CORTEX_ANALYST_SALES_CALL_ACTIVITY: Semantic view that exposes governed sales-call metrics; queries never leave Snowflake (docs/08-TEAMS-INTEGRATION.md, docs/07-CUSTOMIZATION.md).
 ## Change History
 See `.cursor/DIAGRAM_CHANGELOG.md` for vhistory.

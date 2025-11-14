@@ -1,45 +1,44 @@
 # Data Flow - Snowflake Cortex Agents for Microsoft Teams
-Author: Michael Whitaker 
-Last Updated: 2025-11-13 
+Author: Michael Whitaker
+Last Updated: 2025-11-14
 Status: Reference Impl
 ![Snowflake](https://img.shields.io/badge/Snowflake-29B5E8?style=for-the-badge&logo=snowflake&logoColor=white)
 Reference Impl: This code demonstrates prod-grade architectural patterns and best practice. review and customize security, networking, logic for your organization's specific requirements before deployment.
 ## Overview
-This diagram shows how Teams-authenticated prompts flow through Microsoft Entra ID, the shared SFE_ENTRA_ID_CORTEX_AGENTS_INTEGRATION, and into Snowflake. The Cortex agent and SQL function orchestrate Cortex COMPLETE + Cortex Guard, then return curated jokes to Teams.
+This diagram shows how a Microsoft Teams prompt flows through Microsoft Entra ID, the shared SFE_ENTRA_ID_CORTEX_AGENTS_INTEGRATION, and into Snowflake where the SALES_CALLS_ANALYST agent queries the governed semantic view `VW_CORTEX_ANALYST_SALES_CALL_ACTIVITY` via Cortex Analyst before returning results to Teams.
 ## Diagram
 ```mermaid
 graph LR
     Teams[Microsoft Teams<br/>AppSource client]
     Entra[Microsoft Entra ID<br/>OAuth issuer]
     Integration[SFE_ENTRA_ID_CORTEX_AGENTS_INTEGRATION<br/>External OAuth]
-    Snowflake[Snowflake<br/>SNOWFLAKE_EXAMPLE]
-    Agent[JOKE_ASSISTANT Cortex Agent]
-    Function[GENERATE_SAFE_JOKE()<br/>SQL function]
-    CortexAI[Cortex COMPLETE<br/>(mistral-large)]
-    Guard[Cortex Guard]
-    Warehouse[SFE_CORTEX_AGENTS_WH<br/>Warehouse]
-    Schema[SNOWFLAKE_EXAMPLE.CORTEX_DEMO]
 
-    Teams -->|OAuth + JWT| Entra
-    Entra -->|Issues JWT + role claims| Integration
-    Integration -->|Validates tenant & tokens| Snowflake
-    Snowflake --> Agent
-    Agent -->|Invokes| Function
-    Function -->|Calls API| CortexAI
-    CortexAI --> Guard
-    Guard --> Agent
-    Function -->|Runs on| Warehouse
-    Snowflake -->|Houses objects in| Schema
-    Agent -->|Replies| Teams
+    subgraph Snowflake Account
+        Agent[SALES_CALLS_ANALYST<br/>Cortex Agent]
+        AnalystTool[sales_calls_analyst<br/>Cortex Analyst tool]
+        Warehouse[SFE_CORTEX_AGENTS_WH<br/>Warehouse]
+        SemanticView[VW_CORTEX_ANALYST_SALES_CALL_ACTIVITY<br/>Semantic View]
+        FactTable[SNOWFLAKE_EXAMPLE.ANALYTICS.SALES_CALL_ACTIVITY<br/>Fact table]
+    end
+
+    Teams -->|OAuth request| Entra
+    Entra -->|JWT + role claims| Integration
+    Integration -->|Validated Snowflake session| Agent
+    Agent -->|Invokes| AnalystTool
+    AnalystTool -->|Executes SQL on| Warehouse
+    AnalystTool -->|Runs governed query| SemanticView
+    SemanticView -->|Selects from| FactTable
+    Agent -->|Structured answer| Teams
 ```
 ## Component Descriptions
-- Microsoft Teams App: Hosted in Teams / AppSource, this UI lets users trigger jokes and handles the OAuth redirect flow (docs/05-INSTALL-TEAMS-APP.md).
-- Microsoft Entra ID: Provides tenant consent, handles MFA, and issues JWT tokens that Snowflake consumes via the OAuth integration (docs/02-ENTRA-ID-SETUP.md + config/entra_id_setup_guide.md).
-- SFE_ENTRA_ID_CORTEX_AGENTS_INTEGRATION: External OAuth object that maps JWT claims to Snowflake roles and authorizes the Cortex agent (sql/01_setup/04_create_security_integration.sql).
-- JOKE_ASSISTANT Cortex Agent: Orchestrates prompts, invokes the `joke_generator` tool, and enforces response instructions (sql/01_setup/03_create_cortex_agent.sql).
-- GENERATE_SAFE_JOKE() SQL Function: Wraps Cortex COMPLETE + Cortex Guard and runs inside SNOWFLAKE_EXAMPLE.CORTEX_DEMO (sql/01_setup/02_create_joke_function.sql).
-- Cortex AI + Guard: Cortex COMPLETE (mistral-large) generates jokes while Cortex Guard filters unsafe content before the agent responds (sql/01_setup/02_create_joke_function.sql).
-- SFE_CORTEX_AGENTS_WH Warehouse: Dedicated XSMALL warehouse that hosts the SQL function and the Cortex agent tool calls (sql/01_setup/01_create_demo_objects.sql).
-- Cleanup Script: `sql/99_cleanup/teardown_all.sql` removes the schema/function/warehouse when the demo is reset while leaving shared assets intact.
+- Microsoft Teams App: Hosted in Teams / AppSource, this UI initiates prompts, handles OAuth redirects, and renders the agent’s answer (docs/05-INSTALL-TEAMS-APP.md).
+- Microsoft Entra ID: Provides tenant consent, MFA, and short-lived JWTs that Snowflake consumes through the external OAuth integration (docs/02-ENTRA-ID-SETUP.md).
+- SFE_ENTRA_ID_CORTEX_AGENTS_INTEGRATION: Account-level external OAuth object that validates JWTs and maps claims to Snowflake roles (sql/01_setup/04_create_security_integration.sql).
+- SALES_CALLS_ANALYST Cortex Agent: Production-ready agent that orchestrates the Cortex Analyst tool using governed instructions (sql/01_setup/03_create_cortex_agent.sql, Option C).
+- sales_calls_analyst Cortex Analyst Tool: Generates SQL against the semantic view and enforces data governance for Teams questions (sql/01_setup/03_create_cortex_agent.sql).
+- VW_CORTEX_ANALYST_SALES_CALL_ACTIVITY: Curated semantic view that exposes distributor/manufacturer sales call metrics (docs/08-TEAMS-INTEGRATION.md).
+- SNOWFLAKE_EXAMPLE.ANALYTICS.SALES_CALL_ACTIVITY: Fact table powering the semantic view; joins and filters execute inside Snowflake using the dedicated warehouse (docs/07-CUSTOMIZATION.md).
+- SFE_CORTEX_AGENTS_WH Warehouse: XSMALL warehouse that executes Cortex Analyst queries so compute stays isolated and auto-suspended (sql/01_setup/01_create_demo_objects.sql).
+- Cleanup Script: `sql/99_cleanup/teardown_all.sql` removes agent-specific schemas, roles, and warehouses while preserving shared integration objects.
 ## Change History
 See `.cursor/DIAGRAM_CHANGELOG.md` for vhistory.
