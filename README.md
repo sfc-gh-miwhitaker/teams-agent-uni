@@ -51,6 +51,11 @@ A modern, enterprise-ready integration that brings Snowflake's conversational AI
    Tell me a joke about data engineers
    ```
 
+7. **Production Handoff (variable)** → `docs/08-TEAMS-INTEGRATION.md`
+   - Map an existing semantic view (for example, `VW_CORTEX_ANALYST_SALES_CALL_ACTIVITY`)
+   - Register a Cortex Analyst-powered agent for Microsoft Teams
+   - Follow the customer validation checklist and record tenant-side testing
+
 **Total setup time: ~20 minutes**
 
 ---

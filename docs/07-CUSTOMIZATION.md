@@ -38,10 +38,10 @@ Sales team needs instant answers about revenue, pipeline, and performance withou
 
 ### Implementation
 
-**Step 1: Create Semantic View (Cortex Analyst)**
+**Step 1: Create Sales Data and Semantic Model (Cortex Analyst)**
 
 ```sql
--- Create base sales table (example)
+-- Create base sales table (example schema)
 CREATE OR REPLACE TABLE SNOWFLAKE_EXAMPLE.ANALYTICS.SALES_DATA (
     sale_id NUMBER,
     sale_date DATE,
@@ -53,62 +53,11 @@ CREATE OR REPLACE TABLE SNOWFLAKE_EXAMPLE.ANALYTICS.SALES_DATA (
     sales_rep VARCHAR,
     region VARCHAR
 );
-
--- Create semantic model (YAML)
--- Save as: @SNOWFLAKE_EXAMPLE.ANALYTICS.STAGES/sales_semantic_model.yaml
 ```
 
-**Semantic Model (sales_semantic_model.yaml):**
-```yaml
-name: "Sales Performance Model"
-description: "Sales data for Q4 2024 through Q1 2025"
-
-tables:
-  - name: SALES_DATA
-    description: "Daily sales transactions"
-    base_table:
-      database: SNOWFLAKE_EXAMPLE
-      schema: ANALYTICS
-      table: SALES_DATA
-    
-    dimensions:
-      - name: sale_date
-        synonyms: ["date", "transaction date", "when"]
-        data_type: date
-        description: "Date of sale"
-      
-      - name: customer_name
-        synonyms: ["customer", "client", "account"]
-        data_type: varchar
-        description: "Customer who made purchase"
-      
-      - name: sales_rep
-        synonyms: ["rep", "salesperson", "account executive"]
-        data_type: varchar
-        description: "Sales representative"
-      
-      - name: region
-        synonyms: ["territory", "area", "market"]
-        data_type: varchar
-        description: "Sales region"
-    
-    measures:
-      - name: total_amount
-        synonyms: ["revenue", "sales", "amount"]
-        data_type: number
-        aggregation: sum
-        description: "Total sales revenue"
-      
-      - name: quantity
-        synonyms: ["units sold", "volume"]
-        data_type: number
-        aggregation: sum
-        description: "Number of units sold"
-    
-    time_dimensions:
-      - name: sale_date
-        grain: day
-```
+Then define a Cortex Analyst semantic model over this table following the official documentation  
+(`Cortex Analyst Semantic Models` → [docs link already listed at the end of this file).  
+Use aliases and metrics that align with your business terminology; avoid embedding a hardcoded YAML example here so you can track syntax directly from Snowflake’s GA docs.
 
 **Step 2: Create Sales Agent**
 
@@ -258,19 +207,18 @@ CREATE OR REPLACE TABLE SNOWFLAKE_EXAMPLE.HR.EMPLOYEES (
     salary NUMBER -- Masked by policy
 );
 
--- Create row-level security policy
-CREATE OR REPLACE ROW ACCESS POLICY SNOWFLAKE_EXAMPLE.HR.EMPLOYEE_ACCESS_POLICY
-AS (current_user_role VARCHAR) RETURNS BOOLEAN ->
+-- Create row-level security policy:
+-- HR_ADMIN can see all rows; other roles see nothing in this example.
+CREATE OR REPLACE ROW ACCESS POLICY EMPLOYEE_ACCESS_POLICY
+AS (department VARCHAR) RETURNS BOOLEAN ->
     CASE
-        WHEN current_user_role = 'HR_ADMIN' THEN TRUE
-        WHEN current_user_role = 'MANAGER' 
-            THEN manager_id = (SELECT employee_id FROM employees WHERE login_name = CURRENT_USER())
+        WHEN CURRENT_ROLE() = 'HR_ADMIN' THEN TRUE
         ELSE FALSE
     END;
 
--- Apply policy
+-- Apply policy to the employees table
 ALTER TABLE SNOWFLAKE_EXAMPLE.HR.EMPLOYEES 
-    ADD ROW ACCESS POLICY EMPLOYEE_ACCESS_POLICY ON (CURRENT_ROLE());
+    ADD ROW ACCESS POLICY EMPLOYEE_ACCESS_POLICY ON (department);
 
 -- Create aggregate view for metrics
 CREATE OR REPLACE SECURE VIEW SNOWFLAKE_EXAMPLE.HR.HR_METRICS AS
@@ -323,6 +271,7 @@ CREATE OR REPLACE TABLE SNOWFLAKE_EXAMPLE.FINANCE.GL_TRANSACTIONS (
     account_number VARCHAR,
     account_name VARCHAR,
     account_type VARCHAR, -- Revenue, Expense, Asset, Liability
+    transaction_type VARCHAR, -- Budget or Actual
     amount NUMBER(15,2),
     currency VARCHAR,
     cost_center VARCHAR,
@@ -395,6 +344,7 @@ RETURNS TABLE (
     last_check_time TIMESTAMP,
     severity VARCHAR
 )
+LANGUAGE SQL
 AS
 $$
     SELECT table_name,
@@ -422,7 +372,7 @@ explain their impact, and suggest remediation steps. Be proactive -
 if you detect critical issues, emphasize urgency.
 
 Response Instructions:
-- Severity levels: 🔴 Critical, 🟡 Warning, 🟢 OK
+- Use clear severity labels: Critical, Warning, OK
 - Include affected tables, row counts, and check types
 - Suggest root cause analysis steps
 - Provide links to data lineage if available
@@ -526,34 +476,35 @@ CREATE WAREHOUSE PROD_AGENT_WH WITH
     AUTO_SUSPEND = 300  -- 5 minutes for production
     AUTO_RESUME = TRUE;
 
--- Create result caching views
+-- Create result caching views (project only required columns)
 CREATE OR REPLACE VIEW CACHED_SALES_SUMMARY AS
-SELECT * FROM sales_data
+SELECT
+    sale_date,
+    customer_name,
+    product_name,
+    quantity,
+    total_amount
+FROM sales_data
 WHERE sale_date >= DATEADD('month', -3, CURRENT_DATE());
 ```
 
 ### 3. Error Handling
 
 ```sql
--- Add error handling to functions
+-- Add defensive logic to functions
 CREATE OR REPLACE FUNCTION SAFE_QUERY_SALES(region VARCHAR)
 RETURNS VARCHAR
+LANGUAGE SQL
 AS
 $$
-DECLARE
-    result VARCHAR;
-BEGIN
-    TRY
-        SELECT total_sales INTO result
-        FROM sales_summary
-        WHERE sales_region = region;
-        
-        RETURN result;
-    EXCEPTION
-        WHEN statement_error THEN
-            RETURN 'Unable to retrieve sales data. Please contact support.';
-    END TRY;
-END;
+    SELECT COALESCE(
+        (
+            SELECT TO_VARCHAR(total_sales)
+            FROM sales_summary
+            WHERE sales_region = region
+        ),
+        'Unable to retrieve sales data. Please contact support.'
+    )
 $$;
 ```
 
@@ -601,43 +552,18 @@ ALTER WAREHOUSE PROD_AGENT_WH SET RESOURCE_MONITOR = agent_monthly_budget;
 
 ## Example: Complete Sales Agent Setup
 
-**File: `sql/production/create_sales_agent.sql`**
+**File: `sql/production/create_sales_agent.sql` (outline only)**
 
-```sql
--- Full production sales agent setup
-USE ROLE ACCOUNTADMIN;
+Instead of embedding potentially stale DDL here, follow this sequence using the latest Snowflake docs:
 
--- 1. Create schema
-CREATE SCHEMA IF NOT EXISTS PROD.SALES_ANALYTICS;
-
--- 2. Create semantic view
-CREATE SEMANTIC VIEW PROD.SALES_ANALYTICS.SALES_VIEW
-    FROM PROD.RAW.SALES_DATA;
-
--- 3. Create agent
--- (Via Snowsight UI or REST API with production configuration)
-
--- 4. Grant access
-GRANT USAGE ON CORTEX AGENT PROD.SALES_ANALYTICS.SALES_ASSISTANT
-    TO ROLE SALES_ANALYST;
-
--- 5. Set up monitoring
-CREATE ALERT sales_agent_high_usage
-    WAREHOUSE = monitoring_wh
-    SCHEDULE = '60 MINUTE'
-IF (
-    SELECT SUM(CREDITS_USED) 
-    FROM SNOWFLAKE.ACCOUNT_USAGE.WAREHOUSE_METERING_HISTORY
-    WHERE WAREHOUSE_NAME = 'SALES_AGENT_WH'
-      AND START_TIME >= DATEADD('hour', -1, CURRENT_TIMESTAMP())
-) > 10
-THEN
-    CALL SYSTEM$SEND_EMAIL(
-        'snowflake-admins@company.com',
-        'Sales Agent High Usage Alert',
-        'Sales agent warehouse consumed >10 credits in the last hour'
-    );
-```
+1. **Schema & data model**
+   - Create a production schema (for example, `PROD.SALES_ANALYTICS`) and curated tables/views that back your semantic model.
+2. **Semantic model / semantic view**
+   - Define a semantic model or semantic view for Cortex Analyst using the official “Cortex Analyst Semantic Models” documentation.
+3. **Agent creation**
+   - Create the `SALES_ASSISTANT` agent in Snowsight or via REST API, wiring Cortex Analyst to your semantic model.
+4. **Grants and monitoring**
+   - Grant `USAGE` on the agent to the appropriate roles and configure monitoring/alerts using the patterns in the cost‑management section of this guide and the Snowflake Well‑Architected docs.
 
 ---
 

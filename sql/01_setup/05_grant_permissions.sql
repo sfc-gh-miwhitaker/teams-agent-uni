@@ -91,6 +91,38 @@ SELECT 'Permissions granted to CORTEX_AGENT_USERS role' AS status;
 */
 
 -- ============================================================================
+-- OPTION 3: SALES CALL ANALYST ROLE TEMPLATE (SEMANTIC VIEW)
+-- ============================================================================
+
+/*
+ * Use this template when exposing VW_CORTEX_ANALYST_SALES_CALL_ACTIVITY (or any
+ * production semantic view) through a Cortex Analyst-powered Teams agent.
+ */
+
+/*
+CREATE ROLE IF NOT EXISTS SALES_CALLS_AGENT_ROLE
+    COMMENT = 'Teams-facing role for sales call analytics agent';
+
+-- Replace <DB>.<SCHEMA> with the production schema that owns the semantic view
+GRANT USAGE ON DATABASE <DB> TO ROLE SALES_CALLS_AGENT_ROLE;
+GRANT USAGE ON SCHEMA <DB>.<SCHEMA> TO ROLE SALES_CALLS_AGENT_ROLE;
+GRANT SELECT ON VIEW <DB>.<SCHEMA>.VW_CORTEX_ANALYST_SALES_CALL_ACTIVITY
+    TO ROLE SALES_CALLS_AGENT_ROLE;
+
+-- Grant access to any supporting tables if row access policies reference them directly
+-- GRANT SELECT ON TABLE <DB>.<SCHEMA>.FACT_SALES_CALL_ACTIVITY
+--     TO ROLE SALES_CALLS_AGENT_ROLE;
+
+GRANT USAGE ON WAREHOUSE SFE_CORTEX_AGENTS_WH TO ROLE SALES_CALLS_AGENT_ROLE;
+
+GRANT USAGE ON CORTEX AGENT SNOWFLAKE_EXAMPLE.CORTEX_DEMO.SALES_CALLS_ANALYST
+    TO ROLE SALES_CALLS_AGENT_ROLE;
+
+GRANT ROLE SALES_CALLS_AGENT_ROLE TO USER <SALES_MANAGER_USER>;
+ALTER USER <SALES_MANAGER_USER> SET DEFAULT_SECONDARY_ROLES = ('ALL');
+*/
+
+-- ============================================================================
 -- VERIFICATION
 -- ============================================================================
 

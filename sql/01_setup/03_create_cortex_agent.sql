@@ -143,6 +143,119 @@ curl -X POST "$SNOWFLAKE_ACCOUNT_BASE_URL/api/v2/databases/SNOWFLAKE_EXAMPLE/sch
 */
 
 -- ============================================================================
+-- OPTION C: PRODUCTION ANALYTICS AGENT TEMPLATE (SEMANTIC VIEW)
+-- ============================================================================
+
+/*
+ * Use this pattern when your customer already maintains a Cortex Analyst
+ * semantic view (for example, VW_CORTEX_ANALYST_SALES_CALL_ACTIVITY) and the
+ * Teams agent must answer governed analytics questions against it.
+ *
+ * 1. Verify the semantic view is accessible:
+ *
+ *    USE ROLE <DATA_OWNER_ROLE>;
+ *    USE WAREHOUSE <ANALYST_WH>;
+ *    DESCRIBE VIEW <DB>.<SCHEMA>.VW_CORTEX_ANALYST_SALES_CALL_ACTIVITY;
+ *
+ *    SELECT COUNT(*) AS sample_rowcount
+ *    FROM <DB>.<SCHEMA>.VW_CORTEX_ANALYST_SALES_CALL_ACTIVITY
+ *    WHERE PLAN_YEAR = 2024
+ *    LIMIT 1;
+ *
+ *    (Adjust the predicate to a sargable filter that matches your data quality
+ *    checks; avoid forcing full scans.)
+ *
+ * 2. Ensure the Teams-facing role has:
+ *      - USAGE on the database and schema that host the semantic view
+ *      - SELECT on underlying tables/views referenced by the semantic view
+ *      - USAGE on the execution warehouse (for example, SFE_CORTEX_AGENTS_WH)
+ *      - USAGE on the Cortex Agent object after creation
+ *
+ * 3. Create or update the agent via REST to add a Cortex Analyst tool
+ *    referencing the semantic view:
+ *
+ * curl -X POST \"$SNOWFLAKE_ACCOUNT_BASE_URL/api/v2/databases/SNOWFLAKE_EXAMPLE/schemas/CORTEX_DEMO/agents\" \\
+ * --header 'Content-Type: application/json' \\
+ * --header 'Accept: application/json' \\
+ * --header \"Authorization: Bearer $PAT\" \\
+ * --data '{
+ *   \"name\": \"SALES_CALLS_ANALYST\",
+ *   \"comment\": \"DEMO: cortex-agents-teams - Sales call activity analyst\",
+ *   \"models\": {
+ *     \"orchestration\": \"claude-4-sonnet\"
+ *   },
+ *   \"instructions\": {
+ *     \"system\": \"You are a revenue operations analyst. Answer questions about sales call activity using the configured semantic view. Respect RBAC and disclose data freshness timestamps when available.\",
+ *     \"response\": \"Lead with the requested metric, then provide supporting context (time period, distributor, manufacturer) and cite the semantic view name in a Sources section.\",
+ *     \"orchestration\": \"Plan your steps before querying. Prefer a single SQL statement per prompt and reuse results when possible.\",
+ *     \"sample_questions\": [
+ *       \"Show quarterly call volume by manufacturer for 2024\",
+ *       \"Which distributors had a 10 percent decline in call activity year over year?\",
+ *       \"List planned sales programs tied to MFR_SKU 10045\"
+ *     ]
+ *   },
+ *   \"tools\": [
+ *     {
+ *       \"tool_spec\": {
+ *         \"type\": \"cortex_analyst_text_to_sql\",
+ *         \"name\": \"sales_calls_analyst\",
+ *         \"description\": \"Structured analytics over VW_CORTEX_ANALYST_SALES_CALL_ACTIVITY\"
+ *       }
+ *     }
+ *   ],
+ *   \"tool_resources\": {
+ *     \"sales_calls_analyst\": {
+ *       \"semantic_view\": \"<DB>.<SCHEMA>.VW_CORTEX_ANALYST_SALES_CALL_ACTIVITY\",
+ *       \"execution_environment\": {
+ *         \"type\": \"warehouse\",
+ *         \"warehouse\": \"SFE_CORTEX_AGENTS_WH\"
+ *       },
+ *       \"query_timeout\": 90
+ *     }
+ *   }
+ * }'
+ *
+ *    Replace <DB>.<SCHEMA> with the production location for the semantic view
+ *    (for example, CUSTOMER_ANALYTICS.CORTEX_SEMANTICS). Increase the timeout
+ *    if the underlying datasets are large.
+ *
+ *    Smoke test the agent with the agent:run endpoint (requires Teams-linked
+ *    OAuth token or PAT with appropriate scopes):
+ *
+ * curl -X POST \"$SNOWFLAKE_ACCOUNT_BASE_URL/api/v2/cortex/agent:run\" \\
+ * --header 'Content-Type: application/json' \\
+ * --header 'Accept: application/json' \\
+ * --header \"Authorization: Bearer $PAT\" \\
+ * --data '{
+ *   \"agent_id\": {
+ *     \"database\": \"SNOWFLAKE_EXAMPLE\",
+ *     \"schema\": \"CORTEX_DEMO\",
+ *     \"name\": \"SALES_CALLS_ANALYST\"
+ *   },
+ *   \"messages\": [
+ *     {
+ *       \"role\": \"user\",
+ *       \"content\": [
+ *         {
+ *           \"type\": \"text\",
+ *           \"text\": \"Which manufacturers increased call volume by at least 5 percent quarter over quarter?\"
+ *         }
+ *       ]
+ *     }
+ *   ]
+ * }'
+ *
+ * 4. Grant the Teams-facing role access to the agent:
+ *
+ *    GRANT USAGE ON CORTEX AGENT SNOWFLAKE_EXAMPLE.CORTEX_DEMO.SALES_CALLS_ANALYST
+ *        TO ROLE <SALES_CALLS_AGENT_ROLE>;
+ *
+ * Capture any deviations (multiple semantic views, additional Cortex Search
+ * tools, different warehouses) in your runbook so the cleanup script can remove
+ * the same grants.
+ */
+
+-- ============================================================================
 -- VERIFICATION
 -- ============================================================================
 
