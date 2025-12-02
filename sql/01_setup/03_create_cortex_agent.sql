@@ -101,7 +101,7 @@ curl -X POST "$SNOWFLAKE_ACCOUNT_BASE_URL/api/v2/databases/SNOWFLAKE_EXAMPLE/sch
 --header "Authorization: Bearer $PAT" \
 --data '{
   "name": "JOKE_ASSISTANT",
-  "comment": "DEMO: cortex-agents-teams - AI joke bot powered by Cortex",
+  "comment": "DEMO: teams-agent-uni - AI joke bot powered by Cortex (Expires: 2026-01-01)",
   "profile": {
     "display_name": "Joke Assistant",
     "avatar": "🎭"

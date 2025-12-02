@@ -1,9 +1,13 @@
 # Data Flow - Snowflake Cortex Agents for Microsoft Teams
-Author: Michael Whitaker
-Last Updated: 2025-11-14
-Status: Reference Impl
+
+Author: SE Community  
+Last Updated: 2025-12-02  
+Expires: 2026-01-01 (30 days from creation)  
+Status: Reference Implementation
+
 ![Snowflake](https://img.shields.io/badge/Snowflake-29B5E8?style=for-the-badge&logo=snowflake&logoColor=white)
-Reference Impl: This code demonstrates prod-grade architectural patterns and best practice. review and customize security, networking, logic for your organization's specific requirements before deployment.
+
+Reference Implementation: This code demonstrates production-grade architectural patterns and best practices. Review and customize security, networking, and logic for your organization's specific requirements before deployment.
 ## Overview
 This diagram shows how a Microsoft Teams prompt flows through Microsoft Entra ID, the shared SFE_ENTRA_ID_CORTEX_AGENTS_INTEGRATION, and into Snowflake where the SALES_CALLS_ANALYST agent queries the governed semantic view `VW_CORTEX_ANALYST_SALES_CALL_ACTIVITY` via Cortex Analyst before returning results to Teams.
 ## Diagram

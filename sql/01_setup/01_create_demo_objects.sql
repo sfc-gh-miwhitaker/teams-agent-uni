@@ -28,7 +28,7 @@ USE ROLE ACCOUNTADMIN;
 -- ============================================================================
 
 CREATE DATABASE IF NOT EXISTS SNOWFLAKE_EXAMPLE
-    COMMENT = 'DEMO: Repository for example/demo projects - NOT FOR PRODUCTION';
+    COMMENT = 'DEMO: Repository for example/demo projects - NOT FOR PRODUCTION (Expires: 2026-01-01)';
 
 -- Verify database creation
 SHOW DATABASES LIKE 'SNOWFLAKE_EXAMPLE';
@@ -38,7 +38,7 @@ SHOW DATABASES LIKE 'SNOWFLAKE_EXAMPLE';
 -- ============================================================================
 
 CREATE SCHEMA IF NOT EXISTS SNOWFLAKE_EXAMPLE.CORTEX_DEMO
-    COMMENT = 'DEMO: cortex-agents-teams - Schema for Cortex Agents Teams integration demo';
+    COMMENT = 'DEMO: teams-agent-uni - Schema for Cortex Agents Teams integration demo (Expires: 2026-01-01)';
 
 -- Verify schema creation
 SHOW SCHEMAS IN DATABASE SNOWFLAKE_EXAMPLE;
@@ -52,7 +52,7 @@ CREATE WAREHOUSE IF NOT EXISTS SFE_CORTEX_AGENTS_WH WITH
     AUTO_SUSPEND = 60
     AUTO_RESUME = TRUE
     INITIALLY_SUSPENDED = TRUE
-    COMMENT = 'DEMO: cortex-agents-teams - Dedicated warehouse for Cortex Agent query execution';
+    COMMENT = 'DEMO: teams-agent-uni - Dedicated warehouse for Cortex Agent query execution (Expires: 2026-01-01)';
 
 -- Verify warehouse creation
 SHOW WAREHOUSES LIKE 'SFE_CORTEX_AGENTS_WH';

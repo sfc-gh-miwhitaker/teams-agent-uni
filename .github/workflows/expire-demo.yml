@@ -1,0 +1,110 @@
+# Demo Expiration Workflow
+# Author: SE Community
+# Last Updated: 2025-12-02
+# 
+# This workflow automatically archives and makes the repository private
+# when the demo expiration date is reached.
+#
+# IMPORTANT: Update EXPIRE_DATE when extending the demo expiration.
+# Use the `extendexpiration` cursor command to update all files atomically.
+
+name: Demo Expiration Check
+
+on:
+  schedule:
+    # Run daily at midnight UTC
+    - cron: '0 0 * * *'
+  workflow_dispatch:
+    # Allow manual trigger for testing
+
+env:
+  # ⚠️ EXPIRATION DATE - Update this when extending demo
+  # Format: YYYY-MM-DD
+  # Last Updated: 2025-12-02
+  EXPIRE_DATE: '2026-01-01'
+
+jobs:
+  check-expiration:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+      
+    steps:
+      - name: Check if demo has expired
+        id: check
+        run: |
+          EXPIRE_DATE="${{ env.EXPIRE_DATE }}"
+          TODAY=$(date +%Y-%m-%d)
+          
+          echo "Expiration Date: $EXPIRE_DATE"
+          echo "Today's Date: $TODAY"
+          
+          # Convert to epoch for comparison
+          EXPIRE_EPOCH=$(date -d "$EXPIRE_DATE" +%s)
+          TODAY_EPOCH=$(date -d "$TODAY" +%s)
+          
+          if [ $TODAY_EPOCH -ge $EXPIRE_EPOCH ]; then
+            echo "expired=true" >> $GITHUB_OUTPUT
+            echo "🚫 Demo has EXPIRED"
+          else
+            DAYS_REMAINING=$(( ($EXPIRE_EPOCH - $TODAY_EPOCH) / 86400 ))
+            echo "expired=false" >> $GITHUB_OUTPUT
+            echo "✅ Demo is ACTIVE - $DAYS_REMAINING days remaining"
+          fi
+
+      - name: Archive repository (if expired)
+        if: steps.check.outputs.expired == 'true'
+        uses: actions/github-script@v7
+        with:
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          script: |
+            console.log('🚫 Demo expired - archiving repository...');
+            
+            // Archive the repository
+            await github.rest.repos.update({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              archived: true
+            });
+            
+            console.log('✅ Repository archived successfully');
+            
+            // Note: Making repo private requires admin token with repo scope
+            // If you have a PAT with admin:repo scope, uncomment below:
+            // await github.rest.repos.update({
+            //   owner: context.repo.owner,
+            //   repo: context.repo.repo,
+            //   private: true
+            // });
+
+      - name: Create expiration issue (7 days before)
+        if: steps.check.outputs.expired == 'false'
+        uses: actions/github-script@v7
+        with:
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          script: |
+            const expireDate = new Date('${{ env.EXPIRE_DATE }}');
+            const today = new Date();
+            const daysRemaining = Math.ceil((expireDate - today) / (1000 * 60 * 60 * 24));
+            
+            if (daysRemaining <= 7 && daysRemaining > 0) {
+              // Check if warning issue already exists
+              const issues = await github.rest.issues.listForRepo({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                state: 'open',
+                labels: 'demo-expiration'
+              });
+              
+              if (issues.data.length === 0) {
+                await github.rest.issues.create({
+                  owner: context.repo.owner,
+                  repo: context.repo.repo,
+                  title: `⚠️ Demo expires in ${daysRemaining} days`,
+                  body: `## Demo Expiration Warning\n\nThis demo repository will expire on **${{ env.EXPIRE_DATE }}**.\n\n### Options:\n\n1. **Extend the demo** - Run \`extendexpiration 30\` to extend by 30 days\n2. **Archive now** - If no longer needed, manually archive the repository\n3. **Fork for production** - If this pattern is needed long-term, fork and customize\n\n### What happens on expiration:\n\n- Repository will be automatically archived\n- No new commits or issues can be created\n- Existing content remains accessible (read-only)\n\n---\n*This issue was created automatically by the demo expiration workflow.*`,
+                  labels: ['demo-expiration', 'automated']
+                });
+                console.log('⚠️ Created expiration warning issue');
+              }
+            }
+

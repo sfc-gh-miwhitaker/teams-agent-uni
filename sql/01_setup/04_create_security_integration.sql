@@ -74,7 +74,7 @@ CREATE OR REPLACE SECURITY INTEGRATION SFE_ENTRA_ID_CORTEX_AGENTS_INTEGRATION
   EXTERNAL_OAUTH_ANY_ROLE_MODE = 'ENABLE'
   EXTERNAL_OAUTH_ALLOWED_ROLES_LIST = ()
   EXTERNAL_OAUTH_BLOCKED_ROLES_LIST = ()
-  COMMENT = 'DEMO: cortex-agents-teams - OAuth integration for Microsoft Teams bot authentication';
+  COMMENT = 'DEMO: teams-agent-uni - OAuth integration for Microsoft Teams bot authentication (Expires: 2026-01-01)';
 
 -- ============================================================================
 -- VERIFICATION

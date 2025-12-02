@@ -36,7 +36,7 @@ USE WAREHOUSE SFE_CORTEX_AGENTS_WH;
 CREATE OR REPLACE FUNCTION GENERATE_SAFE_JOKE(subject VARCHAR)
 RETURNS VARCHAR
 LANGUAGE SQL
-COMMENT = 'DEMO: cortex-agents-teams - Generate safe-for-work jokes using Cortex AI with guardrails'
+COMMENT = 'DEMO: teams-agent-uni - Generate safe-for-work jokes using Cortex AI with guardrails (Expires: 2026-01-01)'
 AS
 $$
   SELECT SNOWFLAKE.CORTEX.COMPLETE(

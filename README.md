@@ -1,4 +1,18 @@
+![Reference Implementation](https://img.shields.io/badge/Reference-Implementation-blue)
+![Ready to Run](https://img.shields.io/badge/Ready%20to%20Run-Yes-green)
+![Expires](https://img.shields.io/badge/Expires-2026--01--01-orange)
+
 # Snowflake Cortex Agents for Microsoft Teams
+
+> **DEMONSTRATION PROJECT - EXPIRES: 2026-01-01**  
+> This demo uses Snowflake features current as of December 2025.  
+> After expiration, this repository will be archived and made private.
+
+**Author:** SE Community  
+**Purpose:** Reference implementation for Cortex Agents Microsoft Teams integration  
+**Created:** 2025-12-02 | **Expires:** 2026-01-01 (30 days) | **Status:** ACTIVE
+
+---
 
 **Chat with AI-powered agents directly in Microsoft Teams - zero custom code required!**
 
@@ -101,29 +115,36 @@ Want another one? Try asking about a different topic!
 ## Project Structure
 
 ```
-snowflake-cortex-teams/
-├── README.md                           # You are here
-├── QUICKSTART.md                      # Step-by-step with examples
+teams-agent-uni/
+├── README.md                              # You are here
+├── QUICKSTART.md                          # Step-by-step with examples
+├── deploy_all.sql                         # ⭐ One-click deployment script
+├── diagrams/
+│   ├── data-model.md                      # ER diagram
+│   ├── data-flow.md                       # Data flow diagram
+│   ├── auth-flow.md                       # Authentication sequence
+│   └── network-flow.md                    # Network architecture
 ├── sql/
 │   ├── 01_setup/
-│   │   ├── 01_create_demo_objects.sql      # Database, schema, warehouse
-│   │   ├── 02_create_joke_function.sql     # AI joke generator
-│   │   ├── 03_create_cortex_agent.sql      # Agent instructions
+│   │   ├── 01_create_demo_objects.sql     # Database, schema, warehouse
+│   │   ├── 02_create_joke_function.sql    # AI joke generator
+│   │   ├── 03_create_cortex_agent.sql     # Agent instructions
 │   │   ├── 04_create_security_integration.sql  # OAuth with Entra ID
-│   │   └── 05_grant_permissions.sql        # RBAC grants
+│   │   └── 05_grant_permissions.sql       # RBAC grants
 │   └── 99_cleanup/
 │       └── teardown_all.sql               # Complete removal
-├── config/
-│   ├── entra_id_setup_guide.md           # Azure admin guide
-│   └── security_integration_template.sql  # OAuth template
-└── docs/
-    ├── 01-PREREQUISITES.md                # Requirements checklist
-    ├── 02-ENTRA-ID-SETUP.md              # Azure tenant consent
-    ├── 03-SNOWFLAKE-SECURITY-INTEGRATION.md  # OAuth setup
-    ├── 04-CREATE-AGENT.md                # Agent creation guide
-    ├── 05-INSTALL-TEAMS-APP.md           # End user installation
-    ├── 06-TESTING.md                     # Test scenarios
-    └── 07-CUSTOMIZATION.md               # Production use cases
+├── docs/
+│   ├── 01-PREREQUISITES.md                # Requirements checklist
+│   ├── 02-ENTRA-ID-SETUP.md               # Azure tenant consent
+│   ├── 03-SNOWFLAKE-SECURITY-INTEGRATION.md  # OAuth setup
+│   ├── 04-CREATE-AGENT.md                 # Agent creation guide
+│   ├── 05-INSTALL-TEAMS-APP.md            # End user installation
+│   ├── 06-TESTING.md                      # Test scenarios
+│   ├── 07-CUSTOMIZATION.md                # Production use cases
+│   └── 08-TEAMS-INTEGRATION.md            # Production handoff guide
+└── .github/
+    └── workflows/
+        └── expire-demo.yml                # Auto-archive on expiration
 ```
 
 ---
@@ -277,8 +298,9 @@ sql/99_cleanup/teardown_all.sql
 ### For Developers
 
 - docs/07-CUSTOMIZATION.md - Production use case patterns
+- docs/08-TEAMS-INTEGRATION.md - Production handoff guide
 - sql/ - All setup and teardown scripts
-- config/ - Templates and guides
+- diagrams/ - Architecture diagrams
 
 ---
 
